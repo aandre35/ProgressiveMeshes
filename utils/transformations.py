@@ -1,0 +1,2 @@
+def edge_collapse():
+    
