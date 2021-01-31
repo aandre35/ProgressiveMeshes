@@ -2,27 +2,19 @@ from utils.obj import rewrite_obj
 import numpy as np
 import time
 
-class Mesh(object):
+class Mesh_Bis(object):
 
 
-    def __init__(self, vertices, faces, edges=[], priority_queue=[], length_edges=[]):
+    def __init__(self, vertices, faces):
         self.vertices = np.array(vertices)
         self.faces = np.array(faces)
-        
-        if np.any(edges):
-            self.edges = edges
-        else:
-            self.edges = self.get_edges()
-        
-        if np.any(length_edges):
-            self.length_edges = length_edges
-        else:
-            self.length_edges = self.get_length_edges()
 
-        if np.any(priority_queue):
-            self.priority_queue = priority_queue
-        else:
-            self.priority_queue = self.get_priority_queue()
+
+    def get_nb_vertices(self):
+        return len(self.vertices)
+    
+    def get_nb_faces(self):
+        return len(self.faces)
 
 
     def get_edges(self):
@@ -39,7 +31,6 @@ class Mesh(object):
             if e3 not in edges:
                 edges.append(e3)
         edges = np.array(edges)
-        print("Nombre d'edges : {}".format(edges.shape[0]))
         return edges
 
 
@@ -71,20 +62,6 @@ class Mesh(object):
         return priority_queue
 
 
-    def get_nb_edges(self):
-        return len(self.edges)
-
-
-    def get_nb_faces(self):
-        return len(self.faces)
-  
-    
-    def get_nb_vertices(self):
-        return len(self.vertices)
- 
-        
-    #def energy(self):
-    #    return E_dist + E_spring + E_scalar + E_disc
     def energy(self, i):
         return self.corner_energy(i) + self.length_energy(i)
 
@@ -139,84 +116,51 @@ class Mesh(object):
     
     def edge_collapse(self):
 
-        new_lines = []
-
-        # Trouver l'edge qui minimise l'energie
-        print("Priority queue :")
-        print(self.priority_queue[0:10])
-        edge_ind = self.priority_queue[0]
-        vertex_ind = self.edges[edge_ind]
-
-        faces_ind = self.e2f(edge_ind)
-        
-        # Delete the edge
-        self.edges = np.delete(self.edges, edge_ind, 0)
-
-        #Delete the faces
-        self.faces = np.delete(self.faces, faces_ind, 0)
-        new_lines = np.append(new_lines, "\ndf {}".format(faces_ind[0]+1))
-        new_lines = np.append(new_lines, "\ndf {}".format(faces_ind[1]+1))
-        
-        #Compute the new vertex 
-        # (Vs, Vt) -> Vs
-        vs = self.vertices[vertex_ind[0]]
-        vt = self.vertices[vertex_ind[1]]
-
-        alpha = 0.5
-        new_vs = (1 - alpha) * vs + alpha * vt
-        self.vertices[vertex_ind[0]] = new_vs
-        new_lines = np.append(new_lines, "\nev {} {} {} {}".format(vertex_ind[0]+1, new_vs[0], new_vs[1], new_vs[2]))
-        self.vertices = np.delete(self.vertices, vertex_ind[1], 0)
-        
-        # Update faces
-        faces_lines = self.update_faces(vertex_ind[1], vertex_ind[0])
-        new_lines = np.append(new_lines, faces_lines)
-        
-        # Update Edges
+        # Calculer les edges, les longueurs des edges et la priority queue
         self.edges = self.get_edges()
         self.length_edges = self.get_length_edges()
-        
-        #Update Priority Queue
-        self.priority_queue = self.get_priority_queue()
-        #self.update_priority(edge_ind, vertex_ind[0])
+        self.priority = self.get_priority_queue()
 
-        
-        #print(new_lines)
+        # Affichage console
+        print("Nombre de vertices : {}".format(self.get_nb_vertices()))
+        print("Nombre de faces : {}".format(self.get_nb_faces()))
+        print("Nombre d'edges : {}".format(len(self.edges)))
 
-        return new_lines
+        # Récupérer le premier edge de la priority queue
+        edge_ind = self.priority[0]
+        print(self.priority[0:10])
 
-  
-    def update_priority(self, edge_ind, vs_ind):
-        self.priority_queue = self.priority_queue[1:-1]
-        for i in range(len(self.priority_queue)):
-            if self.priority_queue[i] > edge_ind:
-                self.priority_queue[i] -= 1
-    
-        new_edges = self.v2e(vs_ind)
-        print(new_edges)
+        # Récupérer les indices des vertices de l'edge
+        vertices_ind = self.edges[edge_ind]
+        vs_ind = vertices_ind[0]
+        vt_ind = vertices_ind[1]
+
+        # Créer le nouveau point vs
+        vs = self.vertices[vs_ind]
+        vt = self.vertices[vt_ind]
+        alpha = 0.5
+        new_vs = alpha * vs + (1 - alpha) * vt
+
+        # Mettre à jour les vertices et les faces
+        self.update_vertices(vs_ind, vt_ind, new_vs)
+        self.update_faces(edge_ind, vs_ind, vt_ind)
 
 
-    def update_faces(self, vt_ind, vs_ind):
-        faces_lines = []
-        faces_ind_v = self.v2f(vt_ind)
-        for i in faces_ind_v:
-            for k in range(3):
-                if self.faces[i][k] == vt_ind:
-                    self.faces[i][k] = vs_ind
-                    faces_lines = np.append(faces_lines, "\nefv {} {} {}".format(i+1, k+1, vs_ind+1))
+    def update_vertices(self, ind_to_keep, ind_to_del, new_vertice):
+        self.vertices[ind_to_keep] = new_vertice
+        self.vertices = np.delete(self.vertices, ind_to_del, 0)
+
+
+    def update_faces(self, edge_ind, vs_ind, vt_ind):
+        faces_ind_to_del = self.e2f(edge_ind)
+        self.faces = np.delete(self.faces, faces_ind_to_del, 0)
 
         for i in range(len(self.faces)):
-            for k in range(3):
-                if self.faces[i][k] > vt_ind:
-                    self.faces[i][k] =- 1
-        return faces_lines
-
-
-    def copy(self):
-        return Mesh(self.vertices, self.faces, self.edges, self.priority_queue, self.length_edges)
-
-    def get_size(self):
-        return {"v":self.get_nb_vertices(), "f":self.get_nb_faces()} 
+            for j in range(3):
+                if self.faces[i][j] == vt_ind:
+                    self.faces[i][j] = vs_ind
+                elif self.faces[i][j] > vt_ind:
+                    self.faces[i][j] -= 1
 
 
     def write_obj(self):
@@ -224,5 +168,5 @@ class Mesh(object):
         for i in range(len(self.vertices)):
             lines = np.append(lines, "v {} {} {}\n".format(self.vertices[i][0], self.vertices[i][1], self.vertices[i][2]))
         for i in range(len(self.faces)):
-            lines = np.append(lines, "f {} {} {} {}\n".format(i+1, self.faces[i][0]+1, self.faces[i][1]+1, self.faces[i][2]+1))
+            lines = np.append(lines, "f {} {} {}\n".format(self.faces[i][0]+1, self.faces[i][1]+1, self.faces[i][2]+1))
         return lines

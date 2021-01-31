@@ -1,5 +1,6 @@
 from utils.obj import parse_obj
 from mesh import Mesh
+from mesh_bis import Mesh_Bis
 import numpy as np
 import os
 
@@ -7,11 +8,10 @@ import os
 vertices, faces, lines = parse_obj()
 
 # Create the initial mesh
-mesh_init = Mesh(vertices, faces)
+mesh = Mesh_Bis(vertices, faces)
+nb_vertices_init = mesh.get_nb_vertices()
+compression_rate = 0.5
 #print(mesh_init.get_nb_edges())
-
-# Copy of the initial mesh
-mesh = mesh_init.copy()
 
 # Test 
 #print(mesh.priority_queue[0:10])
@@ -19,13 +19,12 @@ mesh = mesh_init.copy()
 # Counter
 cpt = 1
 ################### Compression ###################
-while cpt < 200:#mesh.get_nb_vertices() > 100:
+while cpt < 1000 and mesh.get_nb_vertices() > nb_vertices_init * (1 - compression_rate):
     # Display the iteration number
-    print("\n\nIteration number {}\n".format(cpt))
+    print("\n\nIteration {}\n".format(cpt))
 
     # Edge collapses
-    new_lines = mesh.edge_collapse()
-    lines = np.append(lines, new_lines)
+    mesh.edge_collapse()
 
     # cpt incrementation
     cpt += 1
@@ -35,8 +34,8 @@ while cpt < 200:#mesh.get_nb_vertices() > 100:
 ################### Decompression ###################
 
 # Create the new obj file
-path = "data/new_obj.obja"
+path = "data/obj_final.obja"
 os.remove(path)
 new_obj = open(path, "a")
-new_obj.writelines(lines)
+new_obj.writelines(mesh.write_obj())
 new_obj.close()
