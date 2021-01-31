@@ -115,9 +115,12 @@ class Mesh(object):
     def find_faces(self, i):
         found_faces = []
         e = self.edges[i]
+        #print("Edge : {}".format(e))
         for k in range(len(self.faces)):
             if e[0] in self.faces[k,:] and e[1] in self.faces[k,:]:
+                #print(self.faces[k])
                 found_faces.append(k)
+        #print("Indices des faces trouvées : {}".format(found_faces))
         return found_faces
 
     def find_faces_v(self, i):
@@ -129,50 +132,56 @@ class Mesh(object):
     
     def edge_collapse(self):
 
-        new_lines = []
+        new_lines_compression = []
 
         # Trouver l'edge qui minimise l'energie
         edge_ind = self.priority_queue[0]
         vertex_ind = self.edges[edge_ind]
 
         faces_ind = self.find_faces(edge_ind)
+        print("Indices des faces trouvées : {}".format(faces_ind))
         
         # Delete the edge
-        self.edges = np.delete(self.edges, edge_ind, 0)
+        #self.edges = np.delete(self.edges, edge_ind, 0)
 
         #Delete the faces
-        self.faces = np.delete(self.faces, faces_ind, 0)
-        new_lines = np.append(new_lines, "\ndf {}".format(faces_ind[0]+1))
-        new_lines = np.append(new_lines, "\ndf {}".format(faces_ind[1]+1))
+        #self.faces = np.delete(self.faces, faces_ind, 0)
+        for i in range(len(faces_ind)):
+            new_lines_compression = np.append(new_lines_compression, "\ndf {}".format(faces_ind[i]+1))
+            
+            #new_lines = np.append(new_lines, "\ndf {}".format(faces_ind[1]+1))
         
         #Compute the new vertex 
         # (Vs, Vt) -> Vs
         vs = self.vertices[vertex_ind[0]]
         vt = self.vertices[vertex_ind[1]]
+        print("Vs {}".format(vs))
+        print("Vt {}".format(vt))
 
         alpha = 0.5
         new_vs = (1 - alpha) * vs + alpha * vt
+
+        print("New Vs {}".format(new_vs))
         self.vertices[vertex_ind[0]] = new_vs
-        new_lines = np.append(new_lines, "\nev {} {} {} {}".format(vertex_ind[0]+1, new_vs[0], new_vs[1], new_vs[2]))
+        new_lines_compression = np.append(new_lines_compression, "\nev {} {} {} {}".format(vertex_ind[0]+1, new_vs[0], new_vs[1], new_vs[2]))
         #self.vertices = np.delete(self.vertices, vertex_ind[1])
         
         # Update faces
         faces_lines = self.update_faces(vertex_ind[1], vertex_ind[0])
-        new_lines = np.append(new_lines, faces_lines)
+        new_lines_compression = np.append(new_lines_compression, faces_lines)
         
         # Update Edges
-        self.edges = self.get_edges()
+        #self.edges = self.get_edges()
         
         #Update Priority Queue
-        #self.update_priority(edge_ind, vertex_ind[0])
+        self.update_priority()
         self.length_edges = self.get_length_edges()
-        self.priority_queue = self.get_priority_queue()
+        #self.priority_queue = self.get_priority_queue()
         #Update Length
         #self.update_length_edges()
         
-        print(new_lines)
 
-        return new_lines
+        return new_lines_compression
 
     
     def find_edges(self, vs_ind):
@@ -183,14 +192,9 @@ class Mesh(object):
         return found_edges
 
     
-    def update_priority(self, edge_ind, vs_ind):
-        self.priority_queue = self.priority_queue[1:-1]
-        for i in range(len(self.priority_queue)):
-            if self.priority_queue[i] > edge_ind:
-                self.priority_queue[i] -= 1
-    
-        new_edges = self.find_edges(vs_ind)
-        print(new_edges)
+    def update_priority(self):
+        n = len(self.priority_queue)
+        self.priority_queue = self.priority_queue[1:n]
 
     def update_length_edges(self):
         return
