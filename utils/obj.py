@@ -6,7 +6,7 @@ def parse_obj(file="data/bunny.obj"):
     vertices = [x for x in cmds if x.startswith("v")]
     faces = [x for x in cmds if x.startswith("f")]
     faces = [x.split(" ")[1:4] for x in faces]
-    faces = [[int(y) for y in x] for x in faces]
+    faces = [[int(y) - 1 for y in x] for x in faces]
     vertices = [tuple(x.split(" ")[1:4]) for x in vertices]
     vertices = [[float(y) for y in x] for x in vertices]
     return vertices, faces, lines
