@@ -8,6 +8,7 @@ class Mesh:
     def __init__(self, vertices, faces):
         self.vertices = np.array(vertices)
         self.faces = np.array(faces)
+
         self.vs_list = []
         self.vt_list = []
         self.new_vs_list = []
@@ -56,16 +57,19 @@ class Mesh:
         return np.max(self.length_edges)
 
 
-    def get_priority_queue(self):
-        print("\nDébut du calcul de la priority queue")
+    def get_edge_to_collapse(self):
+        print("\nDébut du calcul des énergies")
         t1 = time.time()
         energies = []
         for i in range(len(self.edges)):
             e_i = self.energy(i)
             energies = np.append(energies, e_i)
-        priority_queue = sorted(range(len(energies)), key= lambda k: energies[k])
-        print("fin du calcul de la priority queue en {:.2f} secondes".format(time.time() - t1))
-        return priority_queue
+        print("fin du calcul des énergies en {:.2f} secondes".format(time.time() - t1))
+        print("\nDébut du calcul du min")
+        t1 = time.time()
+        edge_min = np.argmin(self.energy)
+        print("fin du calcul du min en {:.2f} secondes".format(time.time() - t1))
+        return edge_min
 
 
     def energy(self, i):
@@ -86,9 +90,9 @@ class Mesh:
 
             prod_scal = np.vdot(normal1, normal2)
             
-            return (1 + prod_scal) / 2
+            return 1 - prod_scal
         else:
-            return 10000
+            return 1. / 2. 
 
          
     def length_energy(self, i):
@@ -125,19 +129,15 @@ class Mesh:
     
     def edge_collapse(self):
 
-        # Calculer les edges, les longueurs des edges et la priority queue
+        # Calculer différents éléments
         self.edges = self.get_edges()
         self.length_edges = self.get_length_edges()
-        self.priority = self.get_priority_queue()
+        edge_ind = self.get_edge_to_collapse()
 
         # Affichage console
         print("Nombre de vertices : {}".format(self.get_nb_vertices()))
         print("Nombre de faces : {}".format(self.get_nb_faces()))
         print("Nombre d'edges : {}".format(len(self.edges)))
-
-        # Récupérer le premier edge de la priority queue
-        edge_ind = self.priority[0]
-        #print(self.priority[0:10])
 
         # Récupérer les indices des vertices de l'edge
         vertices_ind = self.edges[edge_ind]
@@ -196,6 +196,21 @@ class Mesh:
                     self.faces[i][j] = vs_ind
                 elif self.faces[i][j] > vt_ind:
                     self.faces[i][j] -= 1
+
+    
+    def update_priority(self, vs_ind):
+        edge_del = self.priority[0]
+        self.edges = np.delete(self.edges, edge_del, 0)
+        for i in range(len(self.priority)):
+            if self.priority[i] > edge_del:
+                self.priority[i] -= 1
+
+
+        self.priority = np.delete(self.priority, 0, 0)
+        edge_i = self.v2e(vs_ind)
+        print("edge_i :", edge_i)
+        for i in edge_i:
+            self.priority = self.energy(i)
 
     
     def vsplit(self):
