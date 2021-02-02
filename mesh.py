@@ -99,9 +99,12 @@ class Mesh:
         """e2f : return indices of faces containing an edge"""
         found_faces = []
         e = self.edges[i]
+        #print("Edge : {}".format(e))
         for k in range(len(self.faces)):
             if e[0] in self.faces[k,:] and e[1] in self.faces[k,:]:
+                #print(self.faces[k])
                 found_faces.append(k)
+        #print("Indices des faces trouvées : {}".format(found_faces))
         return found_faces
 
     def v2f(self, i):
@@ -141,6 +144,7 @@ class Mesh:
         vs_ind = vertices_ind[0]
         vt_ind = vertices_ind[1]
 
+
         # Créer le nouveau point vs
         vs = np.copy(self.vertices[vs_ind])
         vt = self.vertices[vt_ind]
@@ -162,6 +166,7 @@ class Mesh:
 
         self.update_vertices(vs_ind, vt_ind, new_vs)
         self.update_faces(faces_ind_to_del, vs_ind, vt_ind)
+
 
         # Affichage
         #print("vs : ", vs)
@@ -300,6 +305,7 @@ class Mesh:
         for i in range(len(self.faces)):
             lines = np.append(lines, "f {} {} {}\n".format(self.faces[i][0]+1, self.faces[i][1]+1, self.faces[i][2]+1))
         return lines
+
 
 
     def init_size(self):
