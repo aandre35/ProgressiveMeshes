@@ -1,6 +1,5 @@
 from utils.obj import parse_obj
 from mesh import Mesh
-from mesh_bis import Mesh_Bis
 import numpy as np
 import os
 
@@ -8,7 +7,7 @@ import os
 vertices, faces, lines = parse_obj()
 
 # Create the initial mesh
-mesh = Mesh_Bis(vertices, faces)
+mesh = Mesh(vertices, faces)
 nb_faces_init = mesh.get_nb_faces()
 compression_rate = 0.1
 #print(mesh_init.get_nb_edges())
@@ -31,16 +30,23 @@ while cpt < 1000 and mesh.get_nb_faces() > nb_faces_init * compression_rate:
     cpt += 1
 
 lines_after_compression = mesh.write_obj()
+mesh.init_size()
+lines = "\ns {}".format(mesh.get_octet_size())
 
 cpt2 = 0
-lines = []
+nb_ite = cpt // 10
 while cpt2 < cpt:
 
     print("\nIteration VSplit {}".format(cpt2+1))
     
     lines = np.append(lines, mesh.vsplit())
 
+    if cpt2 % nb_ite == 0:
+        lines = np.append(lines, "\ns {}".format(mesh.get_octet_size()))
+
     cpt2 += 1
+
+lines = np.append(lines, "\ns {}".format(mesh.get_octet_size()))
 
 # Create the new obj file
 path = "data/obj_final.obja"
